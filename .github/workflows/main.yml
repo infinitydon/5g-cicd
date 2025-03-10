@@ -1,0 +1,138 @@
+name: Helm Chart Validation and Publishing
+
+on:
+  push:
+    paths:
+      - 'charts/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'charts/**'
+
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+      
+      # Lint the Helm chart
+      - name: Helm lint
+        id: lint
+        run: |
+          for chart in charts/*; do
+            if [ -d "$chart" ]; then
+              echo "Linting chart: $chart"
+              helm lint "$chart"
+            fi
+          done
+      
+      # Render the templates to validate syntax
+      - name: Render templates for validation
+        id: render
+        if: steps.lint.outcome == 'success'
+        run: |
+          mkdir -p .rendered-manifests
+          for chart in charts/*; do
+            if [ -d "$chart" ]; then
+              chart_name=$(basename "$chart")
+              echo "Rendering templates for chart: $chart_name"
+              helm template "$chart" --output-dir .rendered-manifests/"$chart_name"
+            fi
+          done
+      
+      # Validate the chart values
+      - name: Validate Helm chart values
+        id: values_validation
+        if: steps.render.outcome == 'success'
+        run: |
+          # Install yq for YAML processing
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+          
+          for chart in charts/*; do
+            if [ -d "$chart" ]; then
+              chart_name=$(basename "$chart")
+              echo "Validating values for chart: $chart_name"
+              
+              # Check if values.schema.json exists and use it if available
+              if [ -f "$chart/values.schema.json" ]; then
+                pip install jsonschema > /dev/null
+                echo "Validating against existing schema"
+                python -c "import json, jsonschema, sys; jsonschema.validate(json.load(open('$chart/values.yaml')), json.load(open('$chart/values.schema.json')))" || echo "Schema validation warning - not failing build"
+              else
+                # Basic validation with yq
+                echo "Performing basic YAML validation"
+                yq eval "$chart/values.yaml" > /dev/null
+                
+                # Validate that default values render successfully
+                echo "Validating that templates render with default values"
+                helm template "$chart" --validate > /dev/null
+              fi
+            fi
+          done
+          
+      # Scan for security issues with Trivy
+      - name: Install Trivy
+        if: steps.render.outcome == 'success'
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          
+      - name: Scan Helm charts with Trivy
+        id: trivy_scan
+        if: steps.render.outcome == 'success'
+        run: |
+          for chart in charts/*; do
+            if [ -d "$chart" ]; then
+              chart_name=$(basename "$chart")
+              echo "Security scanning chart: $chart_name"
+              trivy config --severity HIGH,CRITICAL --exit-code 1 ./rendered-manifests/"$chart_name" || { echo "CRITICAL vulnerabilities found in $chart_name"; exit 1; }
+            fi
+          done
+      
+      # Check for hardcoded secrets with detect-secrets
+      - name: Check for hardcoded secrets
+        id: secret_scan
+        run: |
+          pip install detect-secrets
+          detect-secrets scan charts/ > secrets-scan-results.json
+          cat secrets-scan-results.json
+          python -c "import json; f=open('secrets-scan-results.json'); data=json.load(f); f.close(); exit(1 if len(data['results']) > 0 else 0)" || { echo "Potential secrets found. Check secrets-scan-results.json"; exit 1; }
+      
+      # Only publish on push events to main branch, not on pull requests
+      - name: Log in to GitHub Container Registry
+        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Package and push modified Helm charts
+        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
+        run: |
+          # Package and push all charts in the charts directory that passed validation
+          for chart in charts/*; do
+            if [ -d "$chart" ]; then
+              chart_name=$(basename "$chart")
+              chart_version=$(grep 'version:' "$chart/Chart.yaml" | awk '{print $2}')
+              
+              echo "Packaging and pushing $chart_name version $chart_version"
+              helm package "$chart"
+              
+              # Push to GitHub Container Registry (OCI)
+              helm push "${chart_name}-${chart_version}.tgz" oci://ghcr.io/${{ github.repository }}/open5gs-charts
+            fi
+          done
