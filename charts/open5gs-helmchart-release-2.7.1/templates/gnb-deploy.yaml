@@ -1,0 +1,48 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: ueransim-gnb  
+  labels:
+    app: ueransim-gnb
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: ueransim-gnb
+  template:
+    metadata:
+      annotations:
+         k8s.v1.cni.cncf.io/networks: >-
+          [
+            { "name": "{{ .Release.Name }}-gnb-n2-nad" },
+            { "name": "{{ .Release.Name }}-gnb-n3-nad" }
+          ]    
+      labels:
+        mode: simulator
+        app: ueransim-gnb
+    spec:
+      serviceAccountName: {{ .Release.Name }}-k8s-wait-for
+      initContainers:    
+      - name: wait-for-amf
+        image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
+        imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        args:
+          - "pod"
+          - "-lepc-mode=amf"         
+      containers:
+      - name: ueransim-gnb
+        image: "{{ .Values.ueransim.repository }}:{{ .Values.ueransim.tag }}"
+        imagePullPolicy: {{ .Values.ueransim.pullPolicy }}        
+        command: ["/bin/sh", "-c"]
+        args:
+        - ./nr-gnb -c open5gs-gnb.yaml;
+        securityContext:
+          privileged: true        
+        volumeMounts:
+        - name: ueransim-gnb-config
+          mountPath: /UERANSIM/build/open5gs-gnb.yaml
+          subPath: open5gs-gnb.yaml              
+      volumes:
+        - name: ueransim-gnb-config
+          configMap:
+            name: ueransim-config
