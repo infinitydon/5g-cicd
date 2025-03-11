@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-scp-config
+  labels:
+    epc-mode: scp
+data:
+  scp.yaml: |
+    global:
+      max:
+        ue: 1024  
+    logger:
+     file:
+       path: /var/log/open5gs/scp.log
+        #level: debug
+    scp:
+      sbi:
+        server:
+        - address: 0.0.0.0
+          advertise: scp-svc
+        client:
+          nrf:
+            - uri: http://nrf-svc
