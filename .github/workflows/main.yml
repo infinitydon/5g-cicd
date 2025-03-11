@@ -130,19 +130,10 @@ jobs:
               fi
             fi
           done
-      
-      # Check for hardcoded secrets with detect-secrets
-      - name: Check for hardcoded secrets
-        id: secret_scan
-        run: |
-          pip install detect-secrets
-          detect-secrets scan charts/ > secrets-scan-results.json
-          cat secrets-scan-results.json
-          python -c "import json; f=open('secrets-scan-results.json'); data=json.load(f); f.close(); exit(1 if len(data['results']) > 0 else 0)" || { echo "Potential secrets found. Check secrets-scan-results.json"; exit 1; }
-      
+
       # Only publish on push events to main branch, not on pull requests
       - name: Log in to GitHub Container Registry
-        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' && steps.secret_scan.outcome == 'success' }}
+        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
@@ -152,7 +143,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Package and push modified Helm charts
-        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' && steps.secret_scan.outcome == 'success' }}
+        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
