@@ -130,7 +130,7 @@ jobs:
               fi
             fi
           done
-
+      
       # Only publish on push events to main branch, not on pull requests
       - name: Log in to GitHub Container Registry
         if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
@@ -151,12 +151,25 @@ jobs:
           for chart in charts/*; do
             if [ -d "$chart" ]; then
               chart_name=$(basename "$chart")
+              # Get the actual chart name from Chart.yaml (not the directory name)
+              actual_chart_name=$(grep 'name:' "$chart/Chart.yaml" | awk '{print $2}')
               chart_version=$(grep 'version:' "$chart/Chart.yaml" | awk '{print $2}')
               
-              echo "Packaging and pushing $chart_name version $chart_version"
+              echo "Packaging and pushing $chart_name (chart: $actual_chart_name) version $chart_version"
               helm package "$chart"
               
-              # Push to GitHub Container Registry (OCI)
-              helm push "${chart_name}-${chart_version}.tgz" oci://ghcr.io/${{ github.repository }}/open5gs-charts
+              # Find the actual package file that was created
+              package_file=$(ls ${actual_chart_name}-${chart_version}.tgz 2>/dev/null || ls ${chart_name}-${chart_version}.tgz 2>/dev/null || echo "")
+              
+              if [ -n "$package_file" ]; then
+                # Push to GitHub Container Registry (OCI)
+                helm push "$package_file" oci://ghcr.io/${{ github.repository }}/open5gs-charts
+              else
+                echo "Error: Could not find packaged chart file. Tried: ${actual_chart_name}-${chart_version}.tgz and ${chart_name}-${chart_version}.tgz"
+                # List all tgz files to help debug
+                echo "Available package files:"
+                ls -la *.tgz || echo "No package files found"
+                exit 1
+              fi
             fi
           done
