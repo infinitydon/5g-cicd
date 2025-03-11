@@ -1,6 +1,6 @@
 # Default values for open5gs-epc-helm.
 # This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
+# Declare variables to be passed into your templates
 awsipmgmt:
   repository: public.ecr.aws/r8l3e1z0/aws-ip-manager
   tag: v0.1
