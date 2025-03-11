@@ -39,6 +39,8 @@ spec:
       - name: wait-for-scp
         image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
         imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        securityContext:
+            readOnlyRootFilesystem: true
         args:
           - "pod"
           - "-lepc-mode=scp"          
@@ -54,6 +56,7 @@ spec:
           args:
           - open5gs-amfd -c /open5gs/config-map/amf.yaml;           
           securityContext:
+             readOnlyRootFilesystem: true
              capabilities:
                add:
                - NET_ADMIN
@@ -61,7 +64,11 @@ spec:
           - name: {{ .Release.Name }}-amf-config
             mountPath: /open5gs/config-map/amf.yaml
             subPath: "amf.yaml"
+          - name: logs
+            mountPath: /var/log/open5gs 
       volumes:
         - name: {{ .Release.Name }}-amf-config
           configMap:
             name: {{ .Release.Name }}-amf-config
+        - name: logs
+          emptyDir: {}

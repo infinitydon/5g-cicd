@@ -37,7 +37,9 @@ spec:
         args:
         - ./nr-gnb -c open5gs-gnb.yaml;
         securityContext:
-          privileged: true        
+          capabilities:
+            add:
+            - NET_ADMIN      
         volumeMounts:
         - name: ueransim-gnb-config
           mountPath: /UERANSIM/build/open5gs-gnb.yaml

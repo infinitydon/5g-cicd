@@ -33,12 +33,16 @@ spec:
       - name: wait-for-scp
         image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
         imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        securityContext:
+            readOnlyRootFilesystem: true
         args:
           - "pod"
           - "-lepc-mode=scp"
       - name: wait-for-mongo
         image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
         imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        securityContext:
+            readOnlyRootFilesystem: true
         args:
           - "pod"
           - "-lapp=open5gs-mongodb"                
@@ -49,11 +53,17 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
           - open5gs-udrd -c /open5gs/config-map/udr.yaml;
+          securityContext:
+            readOnlyRootFilesystem: true
           volumeMounts:
           - name: {{ .Release.Name }}-udr-config
             mountPath: /open5gs/config-map/udr.yaml
             subPath: "udr.yaml"
+          - name: logs
+            mountPath: /var/log/open5gs 
       volumes:
         - name: {{ .Release.Name }}-udr-config
           configMap:
             name: {{ .Release.Name }}-udr-config
+        - name: logs
+          emptyDir: {}  

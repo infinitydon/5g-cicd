@@ -39,6 +39,8 @@ spec:
       - name: wait-for-scp
         image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
         imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        securityContext:
+            readOnlyRootFilesystem: true
         args:
           - "pod"
           - "-lepc-mode=scp"
@@ -49,11 +51,17 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
           - open5gs-nssfd -c /open5gs/config-map/nssf.yaml;
+          securityContext:
+            readOnlyRootFilesystem: true
           volumeMounts:
           - name: {{ .Release.Name }}-nssf-config
             mountPath: /open5gs/config-map/nssf.yaml
             subPath: "nssf.yaml"
+          - name: logs
+            mountPath: /var/log/open5gs  
       volumes:
         - name: {{ .Release.Name }}-nssf-config
           configMap:
             name: {{ .Release.Name }}-nssf-config
+        - name: logs
+          emptyDir: {}
