@@ -106,19 +106,17 @@ jobs:
               # Use the exact same path format as used in the render step
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
-                # Create .trivyignore file to exclude specific issues
-                cat > .trivyignore << 'EOF'
-# Exclude readOnlyRootFilesystem check for MongoDB containers
-KSV014 */mongo*.yaml
-KSV014 */mongodb-initialization.yaml
-KSV014 */gnb-deploy.yaml
-KSV014 */upf-deploy.yaml
-KSV014 */ue-deploy.yaml
-KSV017 */ue-deploy.yaml
-KSV017 */upf-deploy.yaml
-# Add more exclusions as needed
-# Format: [RULE_ID] [FILE_PATTERN]
-EOF
+                # Create .trivyignore file with no indentation issues
+                echo "# Exclude readOnlyRootFilesystem check for MongoDB containers" > .trivyignore
+                echo "KSV014 */mongo*.yaml" >> .trivyignore
+                echo "KSV014 */mongodb-initialization.yaml" >> .trivyignore
+                echo "KSV014 */gnb-deploy.yaml" >> .trivyignore
+                echo "KSV014 */upf-deploy.yaml" >> .trivyignore
+                echo "KSV014 */ue-deploy.yaml" >> .trivyignore
+                echo "KSV017 */ue-deploy.yaml" >> .trivyignore
+                echo "KSV017 */upf-deploy.yaml" >> .trivyignore
+                echo "# Add more exclusions as needed" >> .trivyignore
+                echo "# Format: [RULE_ID] [FILE_PATTERN]" >> .trivyignore
                 
                 trivy config --severity HIGH,CRITICAL --exit-code 1 \
                   --ignorefile .trivyignore \
