@@ -24,8 +24,6 @@ spec:
       containers:
       - image: free5gmano/nextepc-mongodb
         name: open5gs-mongodb
-        securityContext:
-          readOnlyRootFilesystem: true
         ports:
         - containerPort: 27017
           name: mongodb
