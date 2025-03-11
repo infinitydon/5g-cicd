@@ -23,6 +23,8 @@ spec:
   selector:
     matchLabels:
       epc-mode: amf
+  strategy:
+    type: Recreate
   template:
     metadata:
       annotations:
