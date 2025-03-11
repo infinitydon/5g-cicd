@@ -35,7 +35,8 @@ spec:
         imagePullPolicy: {{ .Values.ueransim.pullPolicy }}        
         command: ["/bin/sh", "-c"]
         args:
-        - ./nr-gnb -c open5gs-gnb.yaml;
+        - sleep 10; 
+         ./nr-gnb -c open5gs-gnb.yaml;
         securityContext:
           capabilities:
             add:

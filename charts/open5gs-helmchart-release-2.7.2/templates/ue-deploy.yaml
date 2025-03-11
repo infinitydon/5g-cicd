@@ -34,7 +34,8 @@ spec:
         imagePullPolicy: {{ .Values.ueransim.pullPolicy }}        
         command: ["/bin/sh", "-c"]
         args:
-        - ./nr-ue -c open5gs-ue.yaml;
+        - sleep 15;
+          ./nr-ue -c open5gs-ue.yaml;
         securityContext:
           privileged: true        
         volumeMounts:
