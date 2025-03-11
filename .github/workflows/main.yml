@@ -31,11 +31,35 @@ jobs:
         with:
           version: 'latest'
       
-      # Lint the Helm chart
+      # Get the list of changed charts
+      - name: Identify changed charts
+        id: changed_charts
+        run: |
+          # Get the list of changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          else
+            # For push events
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+          fi
+          
+          # Extract unique chart directories that have changes
+          CHART_DIRS=$(echo "$CHANGED_FILES" | grep "^charts/" | cut -d/ -f1-2 | sort -u)
+          
+          # Export the list for later steps
+          echo "CHART_DIRS=$CHART_DIRS" >> $GITHUB_ENV
+          echo "Changed chart directories: $CHART_DIRS"
+      
+      # Lint only the changed Helm charts
       - name: Helm lint
         id: lint
         run: |
-          for chart in charts/*; do
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping linting."
+            exit 0
+          fi
+          
+          for chart in $CHART_DIRS; do
             if [ -d "$chart" ]; then
               echo "Linting chart: $chart"
               helm lint "$chart"
@@ -55,7 +79,12 @@ jobs:
           mkdir -p $RENDERED_DIR
           echo "Created rendered directory: $RENDERED_DIR"
           
-          for chart in charts/*; do
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping validation."
+            exit 0
+          fi
+          
+          for chart in $CHART_DIRS; do
             if [ -d "$chart" ]; then
               chart_name=$(basename "$chart")
               echo "Processing chart: $chart_name"
@@ -98,7 +127,12 @@ jobs:
           # Print the directory structure to debug
           find $RENDERED_DIR -type d | sort
           
-          for chart in charts/*; do
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping Trivy scan."
+            exit 0
+          fi
+          
+          for chart in $CHART_DIRS; do
             if [ -d "$chart" ]; then
               chart_name=$(basename "$chart")
               echo "Security scanning chart: $chart_name"
@@ -147,8 +181,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Package and push all charts in the charts directory that passed validation
-          for chart in charts/*; do
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping package and publish."
+            exit 0
+          fi
+          
+          # Package and push only the charts that were changed
+          for chart in $CHART_DIRS; do
             if [ -d "$chart" ]; then
               chart_name=$(basename "$chart")
               # Get the actual chart name from Chart.yaml (not the directory name)
