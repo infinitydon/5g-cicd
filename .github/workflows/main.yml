@@ -107,18 +107,18 @@ jobs:
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
                 # Create .trivyignore file to exclude specific issues
-                cat > .trivyignore << EOF
-                # Exclude readOnlyRootFilesystem check for MongoDB containers
-                KSV014 */mongo*.yaml
-                KSV014 */mongodb-initialization.yaml
-                KSV014 */gnb-deploy.yaml
-                KSV014 */upf-deploy.yaml
-                KSV014 */ue-deploy.yaml
-                KSV017 */ue-deploy.yaml
-                KSV017 */upf-deploy.yaml
-                # Add more exclusions as needed
-                # Format: [RULE_ID] [FILE_PATTERN]
-                EOF
+                cat > .trivyignore << 'EOF'
+# Exclude readOnlyRootFilesystem check for MongoDB containers
+KSV014 */mongo*.yaml
+KSV014 */mongodb-initialization.yaml
+KSV014 */gnb-deploy.yaml
+KSV014 */upf-deploy.yaml
+KSV014 */ue-deploy.yaml
+KSV017 */ue-deploy.yaml
+KSV017 */upf-deploy.yaml
+# Add more exclusions as needed
+# Format: [RULE_ID] [FILE_PATTERN]
+EOF
                 
                 trivy config --severity HIGH,CRITICAL --exit-code 1 \
                   --ignorefile .trivyignore \
