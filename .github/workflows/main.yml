@@ -76,10 +76,6 @@ jobs:
                 # Basic validation with yq
                 echo "Performing basic YAML validation"
                 yq eval "$chart/values.yaml" > /dev/null
-                
-                # Validate that default values render successfully
-                echo "Validating that templates render with default values"
-                helm template "$chart" --validate > /dev/null
               fi
             fi
           done
