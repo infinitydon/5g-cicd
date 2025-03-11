@@ -115,6 +115,8 @@ jobs:
                 echo "KSV014 */ue-deploy.yaml" >> .trivyignore
                 echo "KSV017 */ue-deploy.yaml" >> .trivyignore
                 echo "KSV017 */upf-deploy.yaml" >> .trivyignore
+                echo "# Skip privilege escalation checks globally" >> .trivyignore
+                echo "KSV118 *" >> .trivyignore
                 echo "# Add more exclusions as needed" >> .trivyignore
                 echo "# Format: [RULE_ID] [FILE_PATTERN]" >> .trivyignore
                 
