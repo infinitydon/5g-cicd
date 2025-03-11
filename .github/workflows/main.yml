@@ -44,11 +44,11 @@ jobs:
           fi
           
           # Extract unique chart directories that have changes
-          CHART_DIRS=$(echo "$CHANGED_FILES" | grep "^charts/" | cut -d/ -f1-2 | sort -u)
+          CHART_DIRS=$(echo "$CHANGED_FILES" | grep "^charts/" | cut -d/ -f1-2 | sort -u | tr '\n' ' ')
           
-          # Export the list for later steps
-          echo "CHART_DIRS=$CHART_DIRS" >> $GITHUB_ENV
-          echo "Changed chart directories: $CHART_DIRS"
+          # Export the list for later steps - use proper GitHub Actions syntax
+          echo "CHART_DIRS=${CHART_DIRS}" >> $GITHUB_ENV
+          echo "Changed chart directories: ${CHART_DIRS}"
       
       # Lint only the changed Helm charts
       - name: Helm lint
