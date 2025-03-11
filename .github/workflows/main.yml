@@ -90,11 +90,23 @@ jobs:
         id: trivy_scan
         if: steps.render.outcome == 'success'
         run: |
+          # Print the directory structure to debug
+          find ./rendered-manifests -type d | sort
+          
           for chart in charts/*; do
             if [ -d "$chart" ]; then
               chart_name=$(basename "$chart")
               echo "Security scanning chart: $chart_name"
-              trivy config --severity HIGH,CRITICAL --exit-code 1 ./rendered-manifests/"$chart_name" || { echo "CRITICAL vulnerabilities found in $chart_name"; exit 1; }
+              
+              # Find the actual rendered directory (might have additional subdirectories)
+              render_dir="./rendered-manifests/$chart_name"
+              if [ -d "$render_dir" ]; then
+                trivy config --severity HIGH,CRITICAL --exit-code 1 "$render_dir" || { echo "CRITICAL vulnerabilities found in $chart_name"; exit 1; }
+              else
+                echo "Warning: Rendered directory for $chart_name not found at $render_dir"
+                # List directories to help debug
+                ls -la ./rendered-manifests/
+              fi
             fi
           done
       
