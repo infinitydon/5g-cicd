@@ -144,7 +144,7 @@ jobs:
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
                 # Create a simple YAML-based Trivy ignore file
-                cat > .trivyignore.yaml << EOF
+                cat > .trivyignore.yaml << 'EOF'
 misconfigurations:
   # Skip readOnlyRootFilesystem check for specific files
   - id: AVD-KSV-0014
