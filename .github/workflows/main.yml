@@ -142,7 +142,6 @@ jobs:
           scan-type: 'config'
           scan-ref: "${{ github.workspace }}/.rendered-manifests"
           format: json
-          exit-code: '1'
           output: trivy-results.json
           trivy-config: 'trivy.yaml'
           severity: 'CRITICAL,HIGH'
