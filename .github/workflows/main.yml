@@ -146,34 +146,22 @@ jobs:
           echo "Created structured .trivyignore.yaml file with specific and global ignores."
          
       - name: Scan Helm charts with Trivy
-        id: trivy_scan
-        if: steps.render.outcome == 'success'
         run: |
-          # Print the directory structure to debug
-          find $RENDERED_DIR -type d | sort
-          
           if [ -z "$CHART_DIRS" ]; then
             echo "No chart changes detected. Skipping Trivy scan."
             exit 0
           fi
-          
+
           for chart in $CHART_DIRS; do
-            if [ -d "$chart" ]; then
-              chart_name=$(basename "$chart")
-              echo "Security scanning chart: $chart_name"
+            render_dir="$RENDERED_DIR/$(basename "$chart")"
+            if [ -d "$render_dir" ]; then
+              echo "Security scanning chart: $chart"
               
-              # Use the exact same path format as used in the render step
-              render_dir="$RENDERED_DIR/$chart_name"
-              if [ -d "$render_dir" ]; then
-                
-                trivy config --severity HIGH,CRITICAL --exit-code 1 \
-                  --ignore-policy .trivyignore.yaml \
-                  "$render_dir" || { echo "CRITICAL vulnerabilities found in $chart_name"; exit 1; }
-              else
-                echo "Warning: Rendered directory for $chart_name not found at $render_dir"
-                # List directories to help debug
-                ls -la $RENDERED_DIR/
-              fi
+              # Run Trivy scan with ignore policy
+              trivy config --severity HIGH,CRITICAL --exit-code 1 --ignore-policy .trivyignore.yaml "$render_dir" || {
+                echo "CRITICAL vulnerabilities found in $chart"
+                exit 1
+              }
             fi
           done
       
