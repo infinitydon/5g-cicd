@@ -143,16 +143,35 @@ jobs:
               # Use the exact same path format as used in the render step
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
-                # Create .trivyignore file with exact file patterns but using the correct path format
-                echo "# Exclude readOnlyRootFilesystem check for some containers" > .trivyignore
-                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/mongo*.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/gnb-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/upf-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/ue-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0017 open5gs-aio-kargo/templates/ue-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0017 open5gs-aio-kargo/templates/upf-deploy.yaml" >> .trivyignore
-                echo "# Skip privilege escalation checks globally" >> .trivyignore
-                echo "AVD-KSV-0118 *" >> .trivyignore
+                # Create a simple YAML-based Trivy ignore file
+                cat > .trivyignore.yaml << EOF
+misconfigurations:
+  # Skip readOnlyRootFilesystem check for specific files
+  - id: AVD-KSV-0014
+    paths:
+      - "*/mongo*.yaml"
+      - "*/gnb-deploy.yaml"
+      - "*/upf-deploy.yaml"
+      - "*/ue-deploy.yaml"
+  
+  # Skip privilege escalation check for specific components
+  - id: AVD-KSV-0017
+    paths:
+      - "*/ue-deploy.yaml"
+      - "*/upf-deploy.yaml"
+  
+  # Skip privilege escalation check globally
+  - id: AVD-KSV-0118
+EOF
+                
+                # Show the generated config file
+                echo "GENERATED TRIVY IGNORE YAML FILE:"
+                cat .trivyignore.yaml
+                
+                # Run Trivy with the ignore file
+                trivy config --severity HIGH,CRITICAL --exit-code 1 \
+                  --ignore-policy .trivyignore.yaml \
+                  "$render_dir" || { echo "CRITICAL vulnerabilities found in $chart_name"; exit 1; }
                 
                 # Debug: List ignore rules and try simpler pattern
                 echo "IGNORE RULES GENERATED:"
