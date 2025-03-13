@@ -146,6 +146,8 @@ jobs:
           output: trivy-results.json
           trivy-config: 'trivy.yaml'
           severity: 'CRITICAL,HIGH'
+          env:
+            TRIVY_DEBUG: "true"          
       
       - name: Log in to GitHub Container Registry
         if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
