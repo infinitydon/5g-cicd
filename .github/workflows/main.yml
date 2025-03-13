@@ -96,6 +96,9 @@ jobs:
                 echo "Error: No rendered files found for $chart_name"
                 exit 1
               fi
+
+              # Store chart_name in environment variable
+              echo "CHART_NAME=$chart_name" >> $GITHUB_ENV
             fi
           done
 
@@ -105,15 +108,15 @@ jobs:
           misconfigurations:
             - id: AVD-KSV-0014
               paths:
-                - "$chart_name/open5gs-aio-kargo/templates/mongo*.yaml"
-                - "$chart_name/open5gs-aio-kargo/templates/gnb-deploy.yaml"
-                - "$chart_name/open5gs-aio-kargo/templates/upf-deploy.yaml"
-                - "$chart_name/open5gs-aio-kargo/templates/ue-deploy.yaml"
+                - "$CHART_NAME/open5gs-aio-kargo/templates/mongo*.yaml"
+                - "$CHART_NAME/open5gs-aio-kargo/templates/gnb-deploy.yaml"
+                - "$CHART_NAME/open5gs-aio-kargo/templates/upf-deploy.yaml"
+                - "$CHART_NAME/open5gs-aio-kargo/templates/ue-deploy.yaml"
       
             - id: AVD-KSV-0017
               paths:
-                - "$chart_name/open5gs-aio-kargo/templates/ue-deploy.yaml"
-                - "$chart_name/open5gs-aio-kargo/templates/upf-deploy.yaml"
+                - "$CHART_NAME/open5gs-aio-kargo/templates/ue-deploy.yaml"
+                - "$CHART_NAME/open5gs-aio-kargo/templates/upf-deploy.yaml"
       
             - id: AVD-KSV-0118
           EOF
