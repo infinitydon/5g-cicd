@@ -1,12 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: nssf-svc
+  name: pcf-svc
   labels:
-    epc-mode: nssf
+    epc-mode: pcf
 spec:
   selector:
-    epc-mode: nssf
+    epc-mode: pcf
   ports:
     - protocol: TCP
       port: 80 
@@ -15,53 +15,45 @@ spec:
 apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
 kind: Deployment
 metadata:
-  name: {{ .Release.Name }}-nssf-deployment  
+  name: {{ .Release.Name }}-pcf-deployment
   labels:
-    epc-mode: nssf
+    epc-mode: pcf
 spec:
   replicas: 1
   selector:
     matchLabels:
-      epc-mode: nssf
+      epc-mode: pcf
   template:
     metadata:
       labels:
-        epc-mode: nssf
+        epc-mode: pcf
     spec:
       serviceAccountName: {{ .Release.Name }}-k8s-wait-for
       initContainers:     
-      - name: wait-for-nrf
-        image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
-        imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
-        args:
-          - "pod"
-          - "-lepc-mode=nrf"     
       - name: wait-for-scp
         image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
         imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
-        securityContext:
-            readOnlyRootFilesystem: true
         args:
           - "pod"
           - "-lepc-mode=scp"
+      - name: wait-for-mongo
+        image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
+        imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        args:
+          - "pod"
+          - "-lapp=open5gs-mongodb"              
       containers:
-        - name: nssf
+        - name: pcf
           image: "{{ .Values.open5gs.image.repository }}:{{ .Values.open5gs.image.tag }}"
           imagePullPolicy: {{ .Values.open5gs.image.pullPolicy }}
           command: ["/bin/sh", "-c"]
           args:
-          - open5gs-nssfd -c /open5gs/config-map/nssf.yaml;
-          securityContext:
-            readOnlyRootFilesystem: true
+          - open5gs-pcfd -c /open5gs/config-map/pcf.yaml;
           volumeMounts:
-          - name: {{ .Release.Name }}-nssf-config
-            mountPath: /open5gs/config-map/nssf.yaml
-            subPath: "nssf.yaml"
-          - name: logs
-            mountPath: /var/log/open5gs  
+          - name: {{ .Release.Name }}-pcf-config
+            mountPath: /open5gs/config-map/pcf.yaml
+            subPath: "pcf.yaml" 
       volumes:
-        - name: {{ .Release.Name }}-nssf-config
+        - name: {{ .Release.Name }}-pcf-config
           configMap:
-            name: {{ .Release.Name }}-nssf-config
-        - name: logs
-          emptyDir: {}
+            name: {{ .Release.Name }}-pcf-config
