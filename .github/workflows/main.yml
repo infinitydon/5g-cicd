@@ -143,15 +143,14 @@ jobs:
               # Use the exact same path format as used in the render step
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
-                # Create .trivyignore file with exact file patterns but updated IDs and paths
+                # Create .trivyignore file with exact file patterns but using the correct path format
                 echo "# Exclude readOnlyRootFilesystem check for some containers" > .trivyignore
-                echo "AVD-KSV-0014 */*/templates/mongo*.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 */*/templates/gnb-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 */*/templates/upf-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 */*/templates/ue-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 */*/templates/ausf-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0017 */*/templates/ue-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0017 */*/templates/upf-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/mongo*.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/gnb-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/upf-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 open5gs-aio-kargo/templates/ue-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0017 open5gs-aio-kargo/templates/ue-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0017 open5gs-aio-kargo/templates/upf-deploy.yaml" >> .trivyignore
                 echo "# Skip privilege escalation checks globally" >> .trivyignore
                 echo "AVD-KSV-0118 *" >> .trivyignore
                 
