@@ -105,15 +105,15 @@ jobs:
           misconfigurations:
             - id: AVD-KSV-0014
               paths:
-                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/mongo*.yaml"
-                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
-                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+                - "$chart_name/charts/open5gs-aio-kargo/templates/mongo*.yaml"
+                - "$chart_name/charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
+                - "$chart_name/charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+                - "$chart_name/charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
       
             - id: AVD-KSV-0017
               paths:
-                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+                - "$chart_name/charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+                - "$chart_name/charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
       
             - id: AVD-KSV-0118
           EOF
