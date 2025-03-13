@@ -116,77 +116,42 @@ jobs:
           echo "Overall directory structure:"
           find $RENDERED_DIR -type d | sort
           
-      # Scan for security issues with Trivy
-      - name: Install Trivy
-        if: steps.render.outcome == 'success'
+      - name: Create Trivy Ignore File
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-
-      - name: Create Trivy Ignore Policy
-        run: |
-          cat <<EOF > trivy.rego
-          package main
-
-          # Ignore AVD-KSV-0014 only for specific files
-          default allow = true
-
-          allow {
-              input.MisconfID == "AVD-KSV-0014"
-              input.FilePath == "charts/open5gs-aio-kargo/templates/mongo.yaml"
-          }
-
-          allow {
-              input.MisconfID == "AVD-KSV-0014"
-              input.FilePath == "charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
-          }
-
-          allow {
-              input.MisconfID == "AVD-KSV-0014"
-              input.FilePath == "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-          }
-
-          allow {
-              input.MisconfID == "AVD-KSV-0014"
-              input.FilePath == "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-          }
-
-          # Ignore AVD-KSV-0017 only for specific files
-          allow {
-              input.MisconfID == "AVD-KSV-0017"
-              input.FilePath == "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-          }
-
-          allow {
-              input.MisconfID == "AVD-KSV-0017"
-              input.FilePath == "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-          }
-
-          # Ignore AVD-KSV-0118 for ALL files
-          allow {
-              input.MisconfID == "AVD-KSV-0118"
-          }
+          cat <<EOF > .trivyignore.yaml
+          misconfigurations:
+            - id: AVD-KSV-0014
+              paths:
+                - "charts/open5gs-aio-kargo/templates/mongo*.yaml"
+                - "charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
+                - "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+                - "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+      
+            - id: AVD-KSV-0017
+              paths:
+                - "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+                - "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+      
+            - id: AVD-KSV-0118
           EOF
-          echo "Created Rego policy file trivy.rego."
+          echo "Created .trivyignore.yaml file."
 
-      - name: Scan Helm charts with Trivy
+      - name: Create Trivy Config File
         run: |
-          if [ -z "$CHART_DIRS" ]; then
-            echo "No chart changes detected. Skipping Trivy scan."
-            exit 0
-          fi
-
-          for chart in $CHART_DIRS; do
-            render_dir="$RENDERED_DIR/$(basename "$chart")"
-            if [ -d "$render_dir" ]; then
-              echo "Security scanning chart: $chart"
-              
-              # Run Trivy scan using OPA (Rego) policy
-              trivy config --severity HIGH,CRITICAL --exit-code 1 --policy trivy.rego "$render_dir" || {
-                echo "CRITICAL vulnerabilities found in $chart"
-                exit 1
-              }
-            fi
-          done
+          cat <<EOF > trivy.yaml
+          ignorefile: .trivyignore.yaml
+          EOF
+          echo "Created trivy.yaml configuration file."
+          
+      - name: Scan Helm charts with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          scan-ref: ${{ github.workspace }}/$RENDERED_DIR
+          format: json
+          output: trivy-results.json
+          trivy-config: 'trivy.yaml'
+          severity: 'CRITICAL,HIGH'
       
       # Only publish on push events to main branch, not on pull requests
       - name: Log in to GitHub Container Registry
