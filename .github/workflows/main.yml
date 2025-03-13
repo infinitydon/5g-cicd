@@ -128,37 +128,42 @@ jobs:
           package main
 
           # Ignore AVD-KSV-0014 only for specific files
-          deny[msg] {
+          default allow = true
+
+          allow {
+              input.MisconfID == "AVD-KSV-0014"
               input.FilePath == "charts/open5gs-aio-kargo/templates/mongo.yaml"
-              msg := "Ignoring AVD-KSV-0014 in mongo.yaml"
           }
-          deny[msg] {
+
+          allow {
+              input.MisconfID == "AVD-KSV-0014"
               input.FilePath == "charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
-              msg := "Ignoring AVD-KSV-0014 in gnb-deploy.yaml"
           }
-          deny[msg] {
+
+          allow {
+              input.MisconfID == "AVD-KSV-0014"
               input.FilePath == "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-              msg := "Ignoring AVD-KSV-0014 in upf-deploy.yaml"
           }
-          deny[msg] {
+
+          allow {
+              input.MisconfID == "AVD-KSV-0014"
               input.FilePath == "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-              msg := "Ignoring AVD-KSV-0014 in ue-deploy.yaml"
           }
 
           # Ignore AVD-KSV-0017 only for specific files
-          deny[msg] {
+          allow {
+              input.MisconfID == "AVD-KSV-0017"
               input.FilePath == "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-              msg := "Ignoring AVD-KSV-0017 in ue-deploy.yaml"
           }
-          deny[msg] {
+
+          allow {
+              input.MisconfID == "AVD-KSV-0017"
               input.FilePath == "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-              msg := "Ignoring AVD-KSV-0017 in upf-deploy.yaml"
           }
 
           # Ignore AVD-KSV-0118 for ALL files
-          deny[msg] {
+          allow {
               input.MisconfID == "AVD-KSV-0118"
-              msg := "Ignoring AVD-KSV-0118 globally"
           }
           EOF
           echo "Created Rego policy file trivy.rego."
