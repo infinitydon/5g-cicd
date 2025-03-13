@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-nrf-config
+  labels:
+    epc-mode: nrf
+data:
+  nrf.yaml: |
+    global:
+      max:
+        ue: 1024  
+    logger:
+     file:
+       path: /var/log/open5gs/nrf.log
+        #level: debug
+    nrf:
+      sbi:
+        server:
+        - address: 0.0.0.0
+          advertise: nrf-svc
+    time:
+      nf_instance:
+        heartbeat: 0
+      message:
+        duration: 3000
