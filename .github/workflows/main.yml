@@ -126,19 +126,19 @@ jobs:
         run: |
           cat <<EOF > .trivyignore
           # Ignore ReadOnlyRootFilesystem check for specific files
-          AVD-KSV-0014:*/mongo*.yaml
-          AVD-KSV-0014:*/gnb-deploy.yaml
-          AVD-KSV-0014:*/upf-deploy.yaml
-          AVD-KSV-0014:*/ue-deploy.yaml
+          AVD-KSV-0014 charts/open5gs-aio-kargo/templates/mongo*.yaml
+          AVD-KSV-0014 charts/open5gs-aio-kargo/templates/gnb-deploy.yaml
+          AVD-KSV-0014 charts/open5gs-aio-kargo/templates/upf-deploy.yaml
+          AVD-KSV-0014 charts/open5gs-aio-kargo/templates/ue-deploy.yaml
       
           # Ignore Privilege Escalation checks for specific files
-          AVD-KSV-0017:*/ue-deploy.yaml
-          AVD-KSV-0017:*/upf-deploy.yaml
+          AVD-KSV-0017 charts/open5gs-aio-kargo/templates/ue-deploy.yaml
+          AVD-KSV-0017 charts/open5gs-aio-kargo/templates/upf-deploy.yaml
       
-          # Ignore all Privilege Escalation warnings
-          AVD-KSV-0118:*
+          # Ignore all Privilege Escalation warnings globally
+          AVD-KSV-0118
           EOF
-          echo "Created .trivyignore file with file-specific rules."          
+          echo "Created .trivyignore file with correct syntax."          
       - name: Scan Helm charts with Trivy
         id: trivy_scan
         if: steps.render.outcome == 'success'
