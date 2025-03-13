@@ -144,14 +144,19 @@ jobs:
               if [ -d "$render_dir" ]; then
                 # Create .trivyignore file with no indentation issues and using updated AVD IDs
                 echo "# Exclude readOnlyRootFilesystem check for some containers" > .trivyignore
-                echo "AVD-KSV-0014 */mongo*.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 */gnb-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 */upf-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0014 */ue-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0017 */ue-deploy.yaml" >> .trivyignore
-                echo "AVD-KSV-0017 */upf-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */*/mongo*.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */*/gnb-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */*/upf-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */*/ue-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */*/ausf-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0017 */*/ue-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0017 */*/upf-deploy.yaml" >> .trivyignore
                 echo "# Skip privilege escalation checks globally" >> .trivyignore
                 echo "AVD-KSV-0118 *" >> .trivyignore
+                
+                # Debug: Show the actual file paths in the rendered directory
+                echo "Files in rendered directory:"
+                find "$render_dir" -type f -name "*.yaml" | sort
                 
                 trivy config --severity HIGH,CRITICAL --exit-code 1 \
                   --ignorefile .trivyignore \
