@@ -66,8 +66,8 @@ jobs:
         id: render
         if: steps.lint.outcome == 'success'
         run: |
-          mkdir -p "${{ github.workspace }}/$RENDERED_DIR"
-          echo "Created rendered directory: $RENDERED_DIR"
+          mkdir -p "${{ github.workspace }}/.rendered-manifests"
+          echo "Created rendered directory: ${{ github.workspace }}/.rendered-manifests"
 
           if [ -z "$CHART_DIRS" ]; then
             echo "No chart changes detected. Skipping validation."
@@ -79,9 +79,9 @@ jobs:
               chart_name=$(basename "$chart")
               echo "Processing chart: $chart_name"
 
-              helm template "$chart" --output-dir "${{ github.workspace }}/$RENDERED_DIR/$chart_name"
+              helm template "$chart" --output-dir "${{ github.workspace }}/.rendered-manifests/$chart_name"
 
-              if [ -z "$(ls -A "${{ github.workspace }}/$RENDERED_DIR/$chart_name" 2>/dev/null)" ]; then
+              if [ -z "$(ls -A "${{ github.workspace }}/.rendered-manifests/$chart_name" 2>/dev/null)" ]; then
                 echo "Error: No rendered files found for $chart_name"
                 exit 1
               fi
@@ -117,7 +117,7 @@ jobs:
           
       - name: Check Rendered Directory Before Scanning
         run: |
-          if [ ! -d "${{ github.workspace }}/$RENDERED_DIR" ]; then
+          if [ ! -d "${{ github.workspace }}/.rendered-manifests" ]; then
             echo "Error: Rendered directory does not exist!"
             ls -la
             exit 1
@@ -128,7 +128,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
-          scan-ref: "${{ github.workspace }}/$RENDERED_DIR"
+          scan-ref: "${{ github.workspace }}/.rendered-manifests"
           format: json
           output: trivy-results.json
           trivy-config: 'trivy.yaml'
