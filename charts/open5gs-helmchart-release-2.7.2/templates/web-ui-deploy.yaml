@@ -33,13 +33,17 @@ spec:
       - name: wait-for-mongo
         image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
         imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        securityContext:
+            readOnlyRootFilesystem: true
         args:
           - "pod"
           - "-lapp=open5gs-mongodb"    
       containers:
       - name: webui
         imagePullPolicy: {{ .Values.webui.image.pullPolicy }}
-        image: "{{ .Values.webui.image.repository }}:{{ .Values.webui.image.tag }}"      
+        image: "{{ .Values.webui.image.repository }}:{{ .Values.webui.image.tag }}"  
+        securityContext:
+          readOnlyRootFilesystem: true    
         env:
         - name: DB_URI
           value: mongodb://{{ .Release.Name }}-mongodb-svc/open5gs
