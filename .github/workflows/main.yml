@@ -122,29 +122,47 @@ jobs:
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
-      - name: Create Trivy Ignore File
+      - name: Create Trivy Ignore Policy
         run: |
-          cat <<EOF > .trivyignore.yaml
-          misconfigurations:
-            # Ignore AVD-KSV-0014 only for specific files
-            - id: AVD-KSV-0014
-              paths:
-                - "charts/open5gs-aio-kargo/templates/mongo*.yaml"
-                - "charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
-                - "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-                - "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-      
-            # Ignore AVD-KSV-0017 only for specific files
-            - id: AVD-KSV-0017
-              paths:
-                - "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-                - "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-      
-            # Ignore AVD-KSV-0118 for ALL files (no paths specified)
-            - id: AVD-KSV-0118
+          cat <<EOF > trivy.rego
+          package main
+
+          # Ignore AVD-KSV-0014 only for specific files
+          deny[msg] {
+              input.FilePath == "charts/open5gs-aio-kargo/templates/mongo.yaml"
+              msg := "Ignoring AVD-KSV-0014 in mongo.yaml"
+          }
+          deny[msg] {
+              input.FilePath == "charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
+              msg := "Ignoring AVD-KSV-0014 in gnb-deploy.yaml"
+          }
+          deny[msg] {
+              input.FilePath == "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+              msg := "Ignoring AVD-KSV-0014 in upf-deploy.yaml"
+          }
+          deny[msg] {
+              input.FilePath == "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+              msg := "Ignoring AVD-KSV-0014 in ue-deploy.yaml"
+          }
+
+          # Ignore AVD-KSV-0017 only for specific files
+          deny[msg] {
+              input.FilePath == "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+              msg := "Ignoring AVD-KSV-0017 in ue-deploy.yaml"
+          }
+          deny[msg] {
+              input.FilePath == "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+              msg := "Ignoring AVD-KSV-0017 in upf-deploy.yaml"
+          }
+
+          # Ignore AVD-KSV-0118 for ALL files
+          deny[msg] {
+              input.MisconfID == "AVD-KSV-0118"
+              msg := "Ignoring AVD-KSV-0118 globally"
+          }
           EOF
-          echo "Created structured .trivyignore.yaml file with specific and global ignores."
-         
+          echo "Created Rego policy file trivy.rego."
+
       - name: Scan Helm charts with Trivy
         run: |
           if [ -z "$CHART_DIRS" ]; then
@@ -157,8 +175,8 @@ jobs:
             if [ -d "$render_dir" ]; then
               echo "Security scanning chart: $chart"
               
-              # Run Trivy scan with ignore policy
-              trivy config --severity HIGH,CRITICAL --exit-code 1 --ignore-policy .trivyignore.yaml "$render_dir" || {
+              # Run Trivy scan using OPA (Rego) policy
+              trivy config --severity HIGH,CRITICAL --exit-code 1 --policy trivy.rego "$render_dir" || {
                 echo "CRITICAL vulnerabilities found in $chart"
                 exit 1
               }
