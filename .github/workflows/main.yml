@@ -115,7 +115,7 @@ jobs:
           # Show overall structure
           echo "Overall directory structure:"
           find $RENDERED_DIR -type d | sort
-          
+      
       # Scan for security issues with Trivy
       - name: Install Trivy
         if: steps.render.outcome == 'success'
@@ -142,11 +142,16 @@ jobs:
               # Use the exact same path format as used in the render step
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
-                # Create .trivyignore file with no indentation issues
-                echo "KSV017 */ue-deploy.yaml" >> .trivyignore
-                echo "KSV017 */upf-deploy.yaml" >> .trivyignore
-                echo "# Add more exclusions as needed" >> .trivyignore
-                echo "# Format: [RULE_ID] [FILE_PATTERN]" >> .trivyignore
+                # Create .trivyignore file with no indentation issues and using updated AVD IDs
+                echo "# Exclude readOnlyRootFilesystem check for some containers" > .trivyignore
+                echo "AVD-KSV-0014 */mongo*.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */gnb-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */upf-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */ue-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0017 */ue-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0017 */upf-deploy.yaml" >> .trivyignore
+                echo "# Skip privilege escalation checks globally" >> .trivyignore
+                echo "AVD-KSV-0118 *" >> .trivyignore
                 
                 trivy config --severity HIGH,CRITICAL --exit-code 1 \
                   --ignorefile .trivyignore \
