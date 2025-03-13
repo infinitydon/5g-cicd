@@ -136,11 +136,13 @@ jobs:
           echo "Rendered directory exists, proceeding with Trivy scan."
 
       - name: Scan Helm charts with Trivy
+        id: trivy_scan      
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
           scan-ref: "${{ github.workspace }}/.rendered-manifests"
           format: json
+          exit-code: '1'
           output: trivy-results.json
           trivy-config: 'trivy.yaml'
           severity: 'CRITICAL,HIGH'
