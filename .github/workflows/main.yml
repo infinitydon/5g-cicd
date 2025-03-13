@@ -143,26 +143,24 @@ jobs:
               # Use the exact same path format as used in the render step
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
-                # Create a simple YAML-based Trivy ignore file
-                cat > .trivyignore.yaml << 'EOF'
-misconfigurations:
-  # Skip readOnlyRootFilesystem check for specific files
-  - id: AVD-KSV-0014
-    paths:
-      - "*/mongo*.yaml"
-      - "*/gnb-deploy.yaml"
-      - "*/upf-deploy.yaml"
-      - "*/ue-deploy.yaml"
-  
-  # Skip privilege escalation check for specific components
-  - id: AVD-KSV-0017
-    paths:
-      - "*/ue-deploy.yaml"
-      - "*/upf-deploy.yaml"
-  
-  # Skip privilege escalation check globally
-  - id: AVD-KSV-0118
-EOF
+                # Create a simple YAML-based Trivy ignore file using echo commands
+                echo "misconfigurations:" > .trivyignore.yaml
+                echo "  # Skip readOnlyRootFilesystem check for specific files" >> .trivyignore.yaml
+                echo "  - id: AVD-KSV-0014" >> .trivyignore.yaml
+                echo "    paths:" >> .trivyignore.yaml
+                echo "      - \"*/mongo*.yaml\"" >> .trivyignore.yaml
+                echo "      - \"*/gnb-deploy.yaml\"" >> .trivyignore.yaml
+                echo "      - \"*/upf-deploy.yaml\"" >> .trivyignore.yaml
+                echo "      - \"*/ue-deploy.yaml\"" >> .trivyignore.yaml
+                echo "" >> .trivyignore.yaml
+                echo "  # Skip privilege escalation check for specific components" >> .trivyignore.yaml
+                echo "  - id: AVD-KSV-0017" >> .trivyignore.yaml
+                echo "    paths:" >> .trivyignore.yaml
+                echo "      - \"*/ue-deploy.yaml\"" >> .trivyignore.yaml
+                echo "      - \"*/upf-deploy.yaml\"" >> .trivyignore.yaml
+                echo "" >> .trivyignore.yaml
+                echo "  # Skip privilege escalation check globally" >> .trivyignore.yaml
+                echo "  - id: AVD-KSV-0118" >> .trivyignore.yaml
                 
                 # Show the generated config file
                 echo "GENERATED TRIVY IGNORE YAML FILE:"
