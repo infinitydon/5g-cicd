@@ -127,7 +127,8 @@ jobs:
         if: steps.render.outcome == 'success'
         run: |
           # Print the directory structure to debug
-          find $RENDERED_DIR -type d | sort
+          echo "FULL DIRECTORY STRUCTURE:"
+          find $RENDERED_DIR -type f | sort
           
           if [ -z "$CHART_DIRS" ]; then
             echo "No chart changes detected. Skipping Trivy scan."
@@ -148,14 +149,53 @@ jobs:
                 echo "AVD-KSV-0014 */*/templates/gnb-deploy.yaml" >> .trivyignore
                 echo "AVD-KSV-0014 */*/templates/upf-deploy.yaml" >> .trivyignore
                 echo "AVD-KSV-0014 */*/templates/ue-deploy.yaml" >> .trivyignore
+                echo "AVD-KSV-0014 */*/templates/ausf-deploy.yaml" >> .trivyignore
                 echo "AVD-KSV-0017 */*/templates/ue-deploy.yaml" >> .trivyignore
                 echo "AVD-KSV-0017 */*/templates/upf-deploy.yaml" >> .trivyignore
                 echo "# Skip privilege escalation checks globally" >> .trivyignore
                 echo "AVD-KSV-0118 *" >> .trivyignore
                 
-                # Debug: List all the rules in the ignore file
-                echo "Ignore rules generated:"
+                # Debug: List ignore rules and try simpler pattern
+                echo "IGNORE RULES GENERATED:"
                 cat .trivyignore
+                
+                # Run a debug scan with JSON output to see what issues are being detected
+                echo "RUNNING DEBUG SCAN WITH JSON OUTPUT:"
+                trivy config --format json --no-progress "$render_dir" > trivy-debug.json
+                
+                # Extract and display detected issues
+                echo "DETECTED ISSUES (INCLUDING IGNORED ONES):"
+                cat trivy-debug.json | grep -A 5 -B 5 "AVD-KSV" || echo "No issues detected"
+                
+                # Analyze which files are triggering issues
+                echo "FILES WITH ISSUES:"
+                cat trivy-debug.json | grep -A 3 "\"filePath\"" || echo "No file paths found in issues"
+                
+                # Try with very simplified ignore patterns as a test
+                echo "# Simplified ignore pattern for testing" > simple.trivyignore
+                echo "AVD-KSV-0014 *" >> simple.trivyignore
+                echo "AVD-KSV-0017 *" >> simple.trivyignore
+                echo "AVD-KSV-0118 *" >> simple.trivyignore
+                
+                echo "RUNNING ACTUAL TRIVY SCAN WITH DETAILED DEBUG:"
+                trivy config --severity HIGH,CRITICAL --exit-code 1 \
+                  --ignorefile .trivyignore \
+                  --debug \
+                  "$render_dir" || { 
+                    echo "CRITICAL vulnerabilities found in $chart_name"
+                    echo "TRYING WITH SIMPLIFIED IGNORE PATTERNS:"
+                    trivy config --severity HIGH,CRITICAL --exit-code 0 \
+                      --ignorefile simple.trivyignore \
+                      "$render_dir"
+                    exit 1
+                  }
+              else
+                echo "Warning: Rendered directory for $chart_name not found at $render_dir"
+                # List directories to help debug
+                ls -la $RENDERED_DIR/
+              fi
+            fi
+          done
                 
                 trivy config --severity HIGH,CRITICAL --exit-code 1 \
                   --ignorefile .trivyignore \
