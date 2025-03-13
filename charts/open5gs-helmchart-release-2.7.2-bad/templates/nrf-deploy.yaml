@@ -39,13 +39,7 @@ spec:
             - name: {{ .Release.Name }}-nrf-config
               mountPath: /open5gs/config-map/nrf.yaml
               subPath: "nrf.yaml"
-            - name: logs
-              mountPath: /var/log/open5gs 
-          securityContext:
-            readOnlyRootFilesystem: true
       volumes:
         - name: {{ .Release.Name }}-nrf-config
           configMap:
             name: {{ .Release.Name }}-nrf-config
-        - name: logs
-          emptyDir: {}
