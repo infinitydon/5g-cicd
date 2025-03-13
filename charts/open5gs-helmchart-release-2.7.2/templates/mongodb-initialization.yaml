@@ -39,7 +39,6 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - mongo mongodb://{{ .Release.Name }}-mongodb-svc/open5gs /tmp/account.js;
-          apt-get update;apt-get install wget -y;
           cp -rf /tmp/open5gs-dbctl /usr/local/bin/open5gs-dbctl;
           chmod +x /usr/local/bin/open5gs-dbctl;
           bash -x /tmp/ue-init.sh;

@@ -33,6 +33,8 @@ spec:
       - name: wait-for-nrf
         image: "{{ .Values.k8swait.repository }}:{{ .Values.k8swait.tag }}"
         imagePullPolicy: {{ .Values.k8swait.pullPolicy }}
+        securityContext:
+            readOnlyRootFilesystem: true
         args:
           - "pod"
           - "-lepc-mode=nrf" 
@@ -41,11 +43,17 @@ spec:
           image: "{{ .Values.open5gs.image.repository }}:{{ .Values.open5gs.image.tag }}"
           imagePullPolicy: {{ .Values.open5gs.image.pullPolicy }}
           command: ["open5gs-scpd", "-c", "/open5gs/config-map/scp.yaml"]
+          securityContext:
+            readOnlyRootFilesystem: true
           volumeMounts:
-            - name: {{ .Release.Name }}-scp-config
-              mountPath: /open5gs/config-map/scp.yaml
-              subPath: "scp.yaml"
+          - name: {{ .Release.Name }}-scp-config
+            mountPath: /open5gs/config-map/scp.yaml
+            subPath: "scp.yaml"
+          - name: logs
+            mountPath: /var/log/open5gs 
       volumes:
         - name: {{ .Release.Name }}-scp-config
           configMap:
-            name: {{ .Release.Name }}-scp-config         
+            name: {{ .Release.Name }}-scp-config
+        - name: logs
+          emptyDir: {}

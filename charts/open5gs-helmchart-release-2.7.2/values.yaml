@@ -2,19 +2,19 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 awsipmgmt:
-  repository: public.ecr.aws/r8l3e1z0/aws-ip-manager
+  repository: ghcr.io/infinitydon/5g-cicd/aws-ip-manager
   tag: v0.1
   pullPolicy: IfNotPresent
 
 open5gs:
   image:
-    repository: public.ecr.aws/r8l3e1z0/open5gs-aio
+    repository: ghcr.io/infinitydon/5g-cicd/open5gs-aio
     pullPolicy: IfNotPresent
     tag: v2.7.2
 
 webui:
   image:
-    repository: public.ecr.aws/r8l3e1z0/open5gs-web-gui
+    repository: ghcr.io/infinitydon/5g-cicd/open5gs-web-gui
     pullPolicy: IfNotPresent
     tag: v2.7.2
 
@@ -67,7 +67,7 @@ smf:
   multusN4IP: 10.1.4.16
   multusN4NetworkMask: 24
 
-multusInterface: ens23
+multusInterface: ens19
 
 upf:
   N3Int: net1
