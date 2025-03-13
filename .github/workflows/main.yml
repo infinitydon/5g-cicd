@@ -143,12 +143,6 @@ jobs:
               render_dir="$RENDERED_DIR/$chart_name"
               if [ -d "$render_dir" ]; then
                 # Create .trivyignore file with no indentation issues
-                echo "# Exclude readOnlyRootFilesystem check for MongoDB containers" > .trivyignore
-                echo "KSV014 */mongo*.yaml" >> .trivyignore
-                echo "KSV014 */mongodb-initialization.yaml" >> .trivyignore
-                echo "KSV014 */gnb-deploy.yaml" >> .trivyignore
-                echo "KSV014 */upf-deploy.yaml" >> .trivyignore
-                echo "KSV014 */ue-deploy.yaml" >> .trivyignore
                 echo "KSV017 */ue-deploy.yaml" >> .trivyignore
                 echo "KSV017 */upf-deploy.yaml" >> .trivyignore
                 echo "# Add more exclusions as needed" >> .trivyignore
