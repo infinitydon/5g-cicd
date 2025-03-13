@@ -161,7 +161,7 @@ jobs:
                 
                 # Run a debug scan with JSON output to see what issues are being detected
                 echo "RUNNING DEBUG SCAN WITH JSON OUTPUT:"
-                trivy config --format json --no-progress "$render_dir" > trivy-debug.json
+                trivy config --format json "$render_dir" > trivy-debug.json
                 
                 # Extract and display detected issues
                 echo "DETECTED ISSUES (INCLUDING IGNORED ONES):"
