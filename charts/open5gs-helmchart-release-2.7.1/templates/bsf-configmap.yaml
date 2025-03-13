@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-bsf-config
+  labels:
+    epc-mode: bsf
+data:
+  bsf.yaml: |
+    global:
+      max:
+        ue: 1024  
+    logger:
+     file:
+       path: /var/log/open5gs/bsf.log
+        #level: debug
+    bsf:
+      sbi:
+        server:
+        - address: 0.0.0.0
+          advertise: bsf-svc
+        client:
+          scp:
+          - uri: http://scp-svc
