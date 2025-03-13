@@ -105,15 +105,15 @@ jobs:
           misconfigurations:
             - id: AVD-KSV-0014
               paths:
-                - "charts/open5gs-aio-kargo/templates/mongo*.yaml"
-                - "charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
-                - "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
-                - "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/mongo*.yaml"
+                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/gnb-deploy.yaml"
+                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
       
             - id: AVD-KSV-0017
               paths:
-                - "charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
-                - "charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
+                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/ue-deploy.yaml"
+                - "${{ github.workspace }}/.rendered-manifests/$chart_name/charts/open5gs-aio-kargo/templates/upf-deploy.yaml"
       
             - id: AVD-KSV-0118
           EOF
@@ -142,6 +142,7 @@ jobs:
           scan-type: 'config'
           scan-ref: "${{ github.workspace }}/.rendered-manifests"
           format: json
+          exit-code: '1'
           output: trivy-results.json
           trivy-config: 'trivy.yaml'
           severity: 'CRITICAL,HIGH'
