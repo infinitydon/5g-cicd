@@ -143,11 +143,20 @@ jobs:
           EOF
           echo "Created trivy.yaml configuration file."
           
+      - name: Check Rendered Directory Before Scanning
+        run: |
+          if [ ! -d "$RENDERED_DIR" ]; then
+            echo "Rendered directory does not exist: $RENDERED_DIR"
+            ls -la
+            exit 1
+          fi
+          echo "Rendered directory exists, proceeding with Trivy scan."
+
       - name: Scan Helm charts with Trivy
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
-          scan-ref: ${{ github.workspace }}/$RENDERED_DIR
+          scan-ref: "${{ github.workspace }}/$RENDERED_DIR"
           format: json
           output: trivy-results.json
           trivy-config: 'trivy.yaml'
