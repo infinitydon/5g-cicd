@@ -146,7 +146,6 @@ jobs:
           scan-ref: "${{ github.workspace }}/.rendered-manifests"
           format: table
           exit-code: '1'
-          output: trivy-results.json
           trivy-config: 'trivy.yaml'
           severity: 'CRITICAL,HIGH'
         env:
