@@ -140,25 +140,17 @@ jobs:
 
       - name: Scan Helm charts with Trivy
         id: trivy_scan
-        continue-on-error: true
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'config'
           scan-ref: "${{ github.workspace }}/.rendered-manifests"
-          format: json
+          format: table
           exit-code: '1'
           output: trivy-results.json
           trivy-config: 'trivy.yaml'
           severity: 'CRITICAL,HIGH'
         env:
           TRIVY_DEBUG: "true"
-          
-      - name: Display Trivy Scan Results on Failure
-        if: steps.trivy_scan.outcome == 'failure'
-        run: |
-          echo "❌ Trivy Scan Failed! Displaying results..."
-          cat trivy-results.json | jq '.' || cat trivy-results.json
-          exit 1  # Ensures the workflow still fails after displaying results
       
       - name: Log in to GitHub Container Registry
         if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
