@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-smf-config
+  labels:
+    epc-mode: smf
+data:
+  smf.yaml: |
+    global:
+      max:
+        ue: 1024  
+    logger:
+     file:
+       path: /var/log/open5gs/smf.log
+        #level: debug
+    smf:
+      sbi:
+        server:
+        - address: 0.0.0.0
+          advertise: smf-svc
+        client:
+          scp:
+          - uri: http://scp-svc
+      metrics:
+        server:
+        - address: 0.0.0.0
+          port: 9091          
+      pfcp:
+        server:
+         dev: {{ .Values.smf.N4Int }}
+        client:
+          upf:
+            - address: {{ .Values.upf.multusN4IP }}
+              dnn: {{ .Values.apn }}         
+      gtpc:
+        server:
+         dev: {{ .Values.smf.N4Int }}
+      gtpu:
+        server:
+         dev: {{ .Values.smf.N4Int }}
+      session:
+        - subnet: 10.45.0.1/16
+      dns:
+        - 8.8.8.8
+        - 8.8.4.4
+      mtu: 1400    

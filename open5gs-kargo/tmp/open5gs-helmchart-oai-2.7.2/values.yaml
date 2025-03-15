@@ -1,0 +1,86 @@
+# Default values for open5gs-epc-helm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+awsipmgmt:
+  repository: public.ecr.aws/r8l3e1z0/aws-ip-manager
+  tag: v0.1
+  pullPolicy: IfNotPresent
+
+open5gs:
+  image:
+    repository: public.ecr.aws/r8l3e1z0/open5gs-aio
+    pullPolicy: IfNotPresent
+    tag: v2.7.2
+
+webui:
+  image:
+    repository: public.ecr.aws/r8l3e1z0/open5gs-web-gui
+    pullPolicy: IfNotPresent
+    tag: v2.7.2
+
+k8swait:
+   repository: groundnuty/k8s-wait-for
+   pullPolicy: IfNotPresent
+   tag: "v1.4"    
+
+ueransim:
+   repository: registry.gitlab.com/infinitydon/registry/ueransim
+   pullPolicy: IfNotPresent
+   tag: "v3.2.6"
+   gnb:
+    multusN2IP: 10.1.2.17
+    multusN3IP: 10.1.3.17
+    multusN2NetworkMask: 24
+    multusN3NetworkMask: 24
+   ue:
+    multusN2IP: 10.1.2.18
+    multusN2NetworkMask: 24   
+    imsi: "208930000000031"
+    imei: "356938035643803"
+    imeiSv: "4370816125816151"
+    sst: 1
+    sd: ffffff
+    op: "63bfa50ee6523365ff14c1f45f88737d"
+    secKey: "0C0A34601D4F07677303652C0462535B"   
+
+ueImport:
+  image:
+    repository: free5gmano/nextepc-mongodb
+    pullPolicy: IfNotPresent
+    tag: "latest"
+
+apn: internet
+
+sst: 1
+sd: "0xffffff"
+
+mcc: 208
+mnc: 93
+tac: 7
+
+amf:
+  networkName: Open5GS
+  ngapInt: net1
+  multusN2IP: 10.1.2.16
+  multusN2NetworkMask: 24
+
+smf:
+  N4Int: net1
+  multusN4IP: 10.1.4.16
+  multusN4NetworkMask: 24
+
+multusInterface: ens23
+
+upf:
+  N3Int: net1
+  N4Int: net2
+  multusN3IP: 10.1.3.16
+  multusN4IP: 10.1.4.17
+  multusN3NetworkMask: 24
+  multusN4NetworkMask: 24
+
+prometheus:
+  nodeExporter:
+     repository: quay.io/prometheus/node-exporter
+     tag: v1.3.1
+     pullPolicy: IfNotPresent

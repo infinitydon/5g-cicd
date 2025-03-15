@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: open5gs-kargo-dev
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-telco:dev  
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: open5gs-aio-kargo
+    repoURL: ghcr.io/infinitydon/5g-cicd/open5gs-charts
+    targetRevision: 0.0.1
+    helm:
+      releaseName: o5gs-telco
+      valuesObject:
+        multusInterface: ens19
+        amf:
+          multusN2IP: "10.1.2.16"
+        smf:
+          multusN4IP: "10.1.4.16"
+        upf:
+          multusN3IP: "10.1.3.16"
+          multusN4IP: "10.1.4.17"
+        ueransim:
+          gnb:
+            multusN2IP: "10.1.2.17"
+            multusN3IP: "10.1.3.17"
+          ue:
+            multusN2IP: "10.1.2.18"
+  destination:
+    name: in-cluster
+    namespace: core5g
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - Prune=true
+    - PrunePropagationPolicy=foreground
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: open5gs-kargo-prod
+  namespace: argocd
+  annotations:
+    kargo.akuity.io/authorized-stage: kargo-telco:prod  
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: open5gs-aio-kargo
+    repoURL: ghcr.io/infinitydon/5g-cicd/open5gs-charts
+    targetRevision: 0.0.1
+    helm:
+      releaseName: o5gs-telco
+      valuesObject:
+        multusInterface: ens19
+        amf:
+          multusN2IP: "10.2.2.16"
+        smf:
+          multusN4IP: "10.2.4.16"
+        upf:
+          multusN3IP: "10.2.3.16"
+          multusN4IP: "10.2.4.17"
+        ueransim:
+          gnb:
+            multusN2IP: "10.2.2.17"
+            multusN3IP: "10.2.3.17"
+          ue:
+            multusN2IP: "10.2.2.18"
+  destination:
+    name: kargo-cicd-2
+    namespace: core5g
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    - PruneLast=true
+    - Prune=true
+    - PrunePropagationPolicy=foreground

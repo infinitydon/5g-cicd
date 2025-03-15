@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-upf-config
+  labels:
+    epc-mode: upf
+data:
+  upf.yaml: |
+    logger:
+      file:
+        path: /var/log/open5gs/upf.log
+    global:
+      max:
+        ue: 1024        
+    upf:
+      pfcp:
+        server:
+        - dev: eth0
+          advertise: upf-svc
+      gtpu:
+        server:
+        - dev: eth0
+          advertise: upf-svc
+      session:
+        - subnet: 10.45.0.1/16
+          dnn: {{ .Values.apn }}
+      metrics:
+        server:
+        - dev: eth0
+          port: 9091

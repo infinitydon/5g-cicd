@@ -1,0 +1,134 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: gnb-scaling-test
+  namespace: core5g
+spec:
+  metrics:
+  - name: gnb-scaling-check
+    provider:
+      job:
+        spec:
+          backoffLimit: 1
+          template:
+            spec:
+              containers:
+              - name: gnb-test
+                image: curlimages/curl:8.11.0
+                command: ["/bin/sh"]
+                args:
+                - -c
+                - |
+                  for i in $(seq 1 5)
+                  do
+                    echo "Attempt $i of 5"
+                    
+                    RESPONSE=$(curl -s http://10.0.1.1:8080/function/gnb-scaling)
+                    echo "Response received: $RESPONSE"
+                    
+                    if echo "$RESPONSE" | grep -q "NG Setup procedure is successful"; then
+                      echo "gNB NG Setup successful on attempt $i"
+                      exit 0
+                    fi
+                    
+                    if [ $i -lt 5 ]; then
+                      SLEEP_TIME=$((i * 10))
+                      echo "Attempt $i failed, waiting ${SLEEP_TIME} seconds..."
+                      sleep $SLEEP_TIME
+                    fi
+                  done
+                  
+                  echo "All attempts failed - NG Setup success message not found"
+                  exit 1
+              restartPolicy: Never
+
+
+
+
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: gnb-scaling-test
+  namespace: kargo-telco
+spec:
+  metrics:
+  - name: gnb-scaling-check
+    provider:
+      job:
+        spec:
+          backoffLimit: 1
+          template:
+            spec:
+              containers:
+              - name: gnb-test
+                image: curlimages/curl:8.11.0
+                command: ["/bin/sh"]
+                args:
+                - -c
+                - |
+                  for i in $(seq 1 5)
+                  do
+                    echo "Attempt $i of 5"
+                    
+                    RESPONSE=$(curl -s http://10.0.1.1:8080/function/gnb-scaling)
+                    echo "Response received: $RESPONSE"
+                    
+                    if echo "$RESPONSE" | grep -q "NG Setup procedure is successful"; then
+                      echo "gNB NG Setup successful on attempt $i"
+                      exit 0
+                    fi
+                    
+                    if [ $i -lt 5 ]; then
+                      SLEEP_TIME=$((i * 10))
+                      echo "Attempt $i failed, waiting ${SLEEP_TIME} seconds..."
+                      sleep $SLEEP_TIME
+                    fi
+                  done
+                  
+                  echo "All attempts failed - NG Setup success message not found"
+                  exit 1
+              restartPolicy: Never
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ue-scaling-test
+  namespace: kargo-telco
+spec:
+  metrics:
+  - name: ue-scaling-check
+    provider:
+      job:
+        spec:
+          backoffLimit: 1
+          template:
+            spec:
+              containers:
+              - name: ue-test
+                image: curlimages/curl:8.11.0
+                command: ["/bin/sh"]
+                args:
+                - -c
+                - |
+                  for i in $(seq 1 5)
+                  do
+                    echo "Attempt $i of 5"
+                    
+                    RESPONSE=$(curl -s http://10.0.1.1:8080/function/ue-scaling)
+                    echo "Response received: $RESPONSE"
+                    
+                    if echo "$RESPONSE" | grep -q "Connection setup for PDU session[1] is successful, TUN interface"; then
+                      echo "UE PDU session setup successful on attempt $i"
+                      exit 0
+                    fi
+                    
+                    if [ $i -lt 5 ]; then
+                      SLEEP_TIME=$((i * 10))
+                      echo "Attempt $i failed, waiting ${SLEEP_TIME} seconds..."
+                      sleep $SLEEP_TIME
+                    fi
+                  done
+                  
+                  echo "All attempts failed - PDU session setup success message not found"
+                  exit 1
+              restartPolicy: Never              

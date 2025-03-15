@@ -1,0 +1,154 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: kargo-telco
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ueran-scaling-test
+  namespace: kargo-telco
+spec:
+  args:
+  - name: gateway-ip
+  metrics:
+  - name: ueran-scaling-check
+    provider:
+      job:
+        spec:
+          backoffLimit: 1
+          template:
+            spec:
+              containers:
+              - name: ueran-test
+                image: curlimages/curl:8.11.0
+                command: ["/bin/sh"]
+                args:
+                - -c
+                - |
+                  # First check gNB setup
+                  echo "Starting gNB setup check..."
+                  for i in $(seq 1 5)
+                  do
+                    echo "gNB Attempt $i of 5"
+                    
+                    RESPONSE=$(curl -s http://{{args.gateway-ip}}:8080/function/gnb-scaling)
+                    echo "gNB Response received: $RESPONSE"
+                    
+                    if echo "$RESPONSE" | grep -q "NG Setup procedure is successful"; then
+                      echo "gNB NG Setup successful on attempt $i"
+                      break
+                    fi
+                    
+                    if [ $i -eq 5 ]; then
+                      echo "All gNB attempts failed - NG Setup success message not found"
+                      exit 1
+                    fi
+                    
+                    SLEEP_TIME=$((i * 10))
+                    echo "gNB Attempt $i failed, waiting ${SLEEP_TIME} seconds..."
+                    sleep $SLEEP_TIME
+                  done
+
+                  # Wait before starting UE check
+                  echo "gNB setup successful, waiting 10 seconds before UE check..."
+                  sleep 10
+                  
+                  # Then check UE setup
+                  echo "Starting UE setup check..."
+                  for i in $(seq 1 5)
+                  do
+                    echo "UE Attempt $i of 5"
+                    
+                    RESPONSE=$(curl -s http://{{args.gateway-ip}}:8080/function/ue-scaling)
+                    echo "UE Response received: $RESPONSE"
+                    
+                    if echo "$RESPONSE" | grep -q "Connection setup for PDU session\[1\] is successful"; then
+                      echo "UE PDU session setup successful on attempt $i"
+                      exit 0
+                    fi
+                    
+                    if [ $i -eq 5 ]; then
+                      echo "All UE attempts failed - PDU session setup success message not found"
+                      exit 1
+                    fi
+                    
+                    SLEEP_TIME=$((i * 10))
+                    echo "UE Attempt $i failed, waiting ${SLEEP_TIME} seconds..."
+                    sleep $SLEEP_TIME
+                  done
+              restartPolicy: Never
+---              
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: kargo-telco
+  namespace: kargo-telco
+spec:
+  subscriptions:
+  - chart:
+      repoURL: oci://ghcr.io/infinitydon/5g-cicd/open5gs-charts/open5gs-aio-kargo
+      semverConstraint: ^0
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dev
+  namespace: kargo-telco
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: kargo-telco
+    sources:
+      direct: true
+  verification:
+    analysisTemplates:
+    - name: ueran-scaling-test
+    args:
+    - name: gateway-ip
+      value: 10.0.10.1
+  promotionTemplate:
+    spec:    
+      steps:
+      - uses: argocd-update
+        config:
+          apps:
+          - name: open5gs-kargo-dev
+            sources:
+            - repoURL: ghcr.io/infinitydon/5g-cicd/open5gs-charts
+              chart: open5gs-aio-kargo
+              desiredRevision: 0.0.1
+              updateTargetRevision: true
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod
+  namespace: kargo-telco
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: kargo-telco
+    sources:
+      stages:
+      - dev
+  verification:
+    analysisTemplates:
+    - name: ueran-scaling-test
+    args:
+    - name: gateway-ip
+      value: 10.0.10.11      
+  promotionTemplate:
+    spec:    
+      steps:
+      - uses: argocd-update
+        config:
+          apps:
+          - name: open5gs-kargo-prod
+            sources:
+            - repoURL: ghcr.io/infinitydon/5g-cicd/open5gs-charts
+              chart: open5gs-aio-kargo
+              desiredRevision: 0.0.1
+              updateTargetRevision: true        

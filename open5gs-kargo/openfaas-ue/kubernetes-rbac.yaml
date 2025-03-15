@@ -1,0 +1,49 @@
+# rbac.yml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ue-scaling-function
+  namespace: openfaas-fn
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ue-scaling-function
+  namespace: core5g  # namespace where your UERANSIM deployments are
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "patch"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ue-scaling-function
+  namespace: core5g  # namespace where your UERANSIM deployments are
+subjects:
+- kind: ServiceAccount
+  name: ue-scaling-function
+  namespace: openfaas-fn
+roleRef:
+  kind: Role
+  name: ue-scaling-function
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: default-ue-scaling-function
+  namespace: core5g  # namespace where your UERANSIM deployments are
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: openfaas-fn
+roleRef:
+  kind: Role
+  name: ue-scaling-function
+  apiGroup: rbac.authorization.k8s.io  

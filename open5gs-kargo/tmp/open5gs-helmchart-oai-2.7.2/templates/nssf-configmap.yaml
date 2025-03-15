@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-nssf-config
+  labels:
+    epc-mode: nssf
+data:
+  nssf.yaml: |
+    global:
+      max:
+        ue: 1024  
+    logger:
+     file:
+       path: /var/log/open5gs/nssf.log
+        #level: debug
+    nssf:
+      sbi:
+        server:
+        - address: 0.0.0.0
+          advertise: nssf-svc
+        client:
+          scp:
+          - uri: http://scp-svc
+          nsi:
+          - uri: http://nrf-svc
+            s_nssai:
+              sst: {{ .Values.sst }}
+              sd: {{ .Values.sd }}

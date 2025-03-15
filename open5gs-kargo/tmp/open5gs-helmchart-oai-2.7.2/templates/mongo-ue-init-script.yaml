@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-mongo-ue-init
+  labels:
+    epc-mode: job
+data:
+  ue-init.sh: |
+     if open5gs-dbctl showfiltered | grep -w {{ .Values.ueransim.ue.imsi }}; then
+          echo "UE {{ .Values.ueransim.ue.imsi }} exists, proceeding to delete"
+          open5gs-dbctl remove {{ .Values.ueransim.ue.imsi }}
+          open5gs-dbctl add_ue_with_slice {{ .Values.ueransim.ue.imsi }} {{ .Values.ueransim.ue.secKey }} {{ .Values.ueransim.ue.op }} {{ .Values.apn }} {{ .Values.ueransim.ue.sst }} {{ .Values.ueransim.ue.sd }};
+     else
+          echo "UE {{ .Values.ueransim.ue.imsi }} does not exist in the DB, proceeding to add it"
+          open5gs-dbctl add_ue_with_slice {{ .Values.ueransim.ue.imsi }} {{ .Values.ueransim.ue.secKey }} {{ .Values.ueransim.ue.op }} {{ .Values.apn }} {{ .Values.ueransim.ue.sst }} {{ .Values.ueransim.ue.sd }};
+     fi

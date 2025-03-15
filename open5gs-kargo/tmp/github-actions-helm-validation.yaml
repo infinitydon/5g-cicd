@@ -1,0 +1,215 @@
+name: Helm Chart Validation and Publishing
+
+on:
+  push:
+    paths:
+      - 'charts/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'charts/**'
+
+jobs:
+  validate-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    
+    env:
+      RENDERED_DIR: .rendered-manifests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: 'latest'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Get the list of changed charts
+      - name: Identify changed charts
+        id: changed_charts
+        run: |
+          # Get the list of changed files
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          else
+            # For push events
+            CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+          fi
+          
+          # Extract unique chart directories that have changes
+          CHART_DIRS=$(echo "$CHANGED_FILES" | grep "^charts/" | cut -d/ -f1-2 | sort -u | tr '\n' ' ')
+          
+          # Export the list for later steps - use proper GitHub Actions syntax
+          echo "CHART_DIRS=${CHART_DIRS}" >> $GITHUB_ENV
+          echo "Changed chart directories: ${CHART_DIRS}"
+      
+      # Lint only the changed Helm charts
+      - name: Helm lint
+        id: lint
+        run: |
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping linting."
+            exit 0
+          fi
+          
+          for chart in $CHART_DIRS; do
+            if [ -d "$chart" ]; then
+              echo "Linting chart: $chart"
+              helm lint "$chart"
+            fi
+          done
+      
+      # Combined step for validation and rendering
+      - name: Validate values and render templates
+        id: render
+        if: steps.lint.outcome == 'success'
+        run: |
+          # Install yq for YAML processing
+          wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+          
+          # Create output directory
+          mkdir -p $RENDERED_DIR
+          echo "Created rendered directory: $RENDERED_DIR"
+          
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping validation."
+            exit 0
+          fi
+          
+          for chart in $CHART_DIRS; do
+            if [ -d "$chart" ]; then
+              chart_name=$(basename "$chart")
+              echo "Processing chart: $chart_name"
+              
+              # Basic YAML validation with yq
+              echo "Performing basic YAML validation"
+              yq eval "$chart/values.yaml" > /dev/null
+              
+              # Check if values.schema.json exists and use it if available
+              if [ -f "$chart/values.schema.json" ]; then
+                pip install jsonschema > /dev/null 2>&1 || pip install --user jsonschema
+                echo "Validating against existing schema"
+                python -c "import json, jsonschema, sys; jsonschema.validate(json.load(open('$chart/values.yaml')), json.load(open('$chart/values.schema.json')))" || echo "Schema validation warning - not failing build"
+              fi
+              
+              # Render templates without Kubernetes validation
+              echo "Rendering templates for chart: $chart_name"
+              helm template "$chart" --output-dir "$RENDERED_DIR/$chart_name" || echo "Warning: Template rendering had issues, but continuing"
+              
+              # Check if anything was rendered
+              echo "Contents of rendered directory:"
+              ls -la "$RENDERED_DIR/$chart_name" || echo "Failed to list directory contents"
+            fi
+          done
+          
+          # Show overall structure
+          echo "Overall directory structure:"
+          find $RENDERED_DIR -type d | sort
+          
+      # Scan for security issues with Trivy
+      - name: Install Trivy
+        if: steps.render.outcome == 'success'
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          
+      - name: Scan Helm charts with Trivy
+        id: trivy_scan
+        if: steps.render.outcome == 'success'
+        run: |
+          # Print the directory structure to debug
+          find $RENDERED_DIR -type d | sort
+          
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping Trivy scan."
+            exit 0
+          fi
+          
+          for chart in $CHART_DIRS; do
+            if [ -d "$chart" ]; then
+              chart_name=$(basename "$chart")
+              echo "Security scanning chart: $chart_name"
+              
+              # Use the exact same path format as used in the render step
+              render_dir="$RENDERED_DIR/$chart_name"
+              if [ -d "$render_dir" ]; then
+                # Create .trivyignore file with no indentation issues
+                echo "# Exclude readOnlyRootFilesystem check for some containers" > .trivyignore
+                echo "KSV014 */mongo*.yaml" >> .trivyignore
+                echo "KSV014 */gnb-deploy.yaml" >> .trivyignore
+                echo "KSV014 */upf-deploy.yaml" >> .trivyignore
+                echo "KSV014 */ue-deploy.yaml" >> .trivyignore
+                echo "KSV017 */ue-deploy.yaml" >> .trivyignore
+                echo "KSV017 */upf-deploy.yaml" >> .trivyignore
+                echo "# Skip privilege escalation checks globally" >> .trivyignore
+                echo "KSV118 *" >> .trivyignore
+                echo "# Add more exclusions as needed" >> .trivyignore
+                echo "# Format: [RULE_ID] [FILE_PATTERN]" >> .trivyignore
+                
+                trivy config --severity HIGH,CRITICAL --exit-code 1 \
+                  --ignorefile .trivyignore \
+                  "$render_dir" || { echo "CRITICAL vulnerabilities found in $chart_name"; exit 1; }
+              else
+                echo "Warning: Rendered directory for $chart_name not found at $render_dir"
+                # List directories to help debug
+                ls -la $RENDERED_DIR/
+              fi
+            fi
+          done
+      
+      # Only publish on push events to main branch, not on pull requests
+      - name: Log in to GitHub Container Registry
+        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Package and push modified Helm charts
+        if: ${{ github.event_name == 'push' && steps.trivy_scan.outcome == 'success' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -z "$CHART_DIRS" ]; then
+            echo "No chart changes detected. Skipping package and publish."
+            exit 0
+          fi
+          
+          # Package and push only the charts that were changed
+          for chart in $CHART_DIRS; do
+            if [ -d "$chart" ]; then
+              chart_name=$(basename "$chart")
+              # Get the actual chart name from Chart.yaml (not the directory name)
+              actual_chart_name=$(grep 'name:' "$chart/Chart.yaml" | awk '{print $2}')
+              chart_version=$(grep 'version:' "$chart/Chart.yaml" | awk '{print $2}')
+              
+              echo "Packaging and pushing $chart_name (chart: $actual_chart_name) version $chart_version"
+              helm package "$chart"
+              
+              # Find the actual package file that was created
+              package_file=$(ls ${actual_chart_name}-${chart_version}.tgz 2>/dev/null || ls ${chart_name}-${chart_version}.tgz 2>/dev/null || echo "")
+              
+              if [ -n "$package_file" ]; then
+                # Push to GitHub Container Registry (OCI)
+                helm push "$package_file" oci://ghcr.io/${{ github.repository }}/open5gs-charts
+              else
+                echo "Error: Could not find packaged chart file. Tried: ${actual_chart_name}-${chart_version}.tgz and ${chart_name}-${chart_version}.tgz"
+                # List all tgz files to help debug
+                echo "Available package files:"
+                ls -la *.tgz || echo "No package files found"
+                exit 1
+              fi
+            fi
+          done
