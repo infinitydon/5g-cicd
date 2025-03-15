@@ -75,7 +75,9 @@ EOF
 ```
 
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.yaml
+
 kubectl create ns argocd
+
 kubectl -n argocd apply -f https://github.com/argoproj/argo-cd/raw/refs/tags/v2.13.0/manifests/install.yaml
 
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
@@ -83,16 +85,22 @@ kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
 
 curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+
 sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
+
 rm argocd-linux-amd64
 
 
 kubectl create namespace argo-rollouts
+
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/download/v1.7.2/install.yaml
 
 pass="nLIlShGRcSIMTnSsezH7"
+
 echo "Password: $pass"
+
 hashed_pass=$(htpasswd -bnBC 10 "" $pass | tr -d ':\n')
+
 signing_key="jzKIHqB0XwjSTfgpTdPjtptUtfVnU5Lx"
 
 helm upgrade --install kargo \
@@ -106,24 +114,34 @@ helm upgrade --install kargo \
 
 ## OpenFaaS
 curl -SLsf https://get.arkade.dev/ | sudo sh
+
 arkade install openfaas --load-balancer
+
 arkade get faas-cli
+
 sudo mv /home/ubuntu/.arkade/bin/faas-cli /usr/local/bin/
 
 kubectl create ns core5g
+
 kubectl apply -f openfaas-ue/kubernetes-rbac.yaml 
+
 kubectl apply -f openfaas-gnb/kubernetes-rbac.yaml
 
 export OPENFAAS_URL=http://10.0.10.1:8080/ (this will be the LB IP, modify if necessary)
+
 PASSWORD=$(kubectl get secret -n openfaas basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode; echo)
+
 echo -n $PASSWORD | faas-cli login --username admin --password-stdin
 
 ## Install openfaas
 Update the GW value to the LB IP that was assigned by metalLB in `gateway: http://10.0.1.1:8080/` in both gnb-scaling.yml and ue-scaling.yml
+
 cd ~/openfaas-gnb;faas-cli deploy -f gnb-scaling.yml
+
 cd ~/openfaas-ue;faas-cli deploy -f ue-scaling.yml
 
 N.B - Same manifests will be used for the openfaas in the prod cluster i.e. VM2 but only the gateway IP needs to be changed.
+
 N.B - MetalLB is optional, NodePort service can also be used or public cloud LB as applicable to your platform
 
 ## Second Cluster
@@ -131,6 +149,7 @@ kubectl apply -f https://github.com/infinitydon/nephio-proxmox-packages/raw/refs
 
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
 
+```
 cat <<EOF | kubectl apply -f-
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -150,29 +169,40 @@ spec:
   interfaces:
   - eth0  
 EOF
+```
 
 ## Install openfaas
 curl -SLsf https://get.arkade.dev/ | sudo sh
+
 arkade install openfaas --load-balancer
+
 arkade get faas-cli
+
 sudo mv /home/ubuntu/.arkade/bin/faas-cli /usr/local/bin/
 
 kubectl create ns core5g
+
 kubectl apply -f openfaas-ue/kubernetes-rbac.yaml
+
 kubectl apply -f openfaas-gnb/kubernetes-rbac.yaml
 
 export OPENFAAS_URL=http://10.0.10.11:8080/ (this will be the LB IP, modify if necessary)
+
 PASSWORD=$(kubectl get secret -n openfaas basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode; echo)
+
 echo -n $PASSWORD | faas-cli login --username admin --password-stdin
 
 ## Update the gateway to the openfaas gateway for the second cluster before applying
+
 cd ~/openfaas-gnb;faas-cli deploy -f gnb-scaling.yml
+
 cd ~/openfaas-ue;faas-cli deploy -f ue-scaling.yml
 
 ## Register second cluster on first cluster, command must be run in first cluster
 argocd login --insecure 10.0.10.2 --username admin --password BD6WfMM2AUQdRkch --skip-test-tls --grpc-web
 
 N.B - 10.0.10.2 is the ArgoCD LB IP
+
 N.B - You will need to copy the kubeconfig of prod cluster to the dev cluster VM
 
 argocd cluster add --kubeconfig kargo-cicd-2-kubeconfig --kube-context string Default --name kargo-cicd-2
@@ -186,4 +216,5 @@ kubectl apply -f argoccd-applicationset.yaml
 ```
 
 You can now push open5gs charts to the Git repo to trigger the trivy scanning and OCI chart build.
+
 The chart will only be pushed to the github OCI repo if all the  github-action steps result in success.
