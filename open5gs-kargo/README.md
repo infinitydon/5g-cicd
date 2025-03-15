@@ -13,6 +13,8 @@ VM2 - This will be used only as the prod cluster and it must be registered as a 
 k0s was used to create the k8s clusters (single node cluster).
 
 ## Install k8s cluster on  both VMs
+
+```
 echo -e "network:\n  version: 2\n  renderer: networkd\n  ethernets:\n    ens19:\n      dhcp4: no\n      dhcp6: no\n      optional: true\n      addresses: []" | sudo tee /etc/netplan/99-ens19.yaml > /dev/null && sudo netplan apply
 
 N.B - ens19 is the additional NIC that is required for multus, this may be a different name depending on your OS or VM platform.
@@ -32,11 +34,13 @@ curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 
 mkdir ~/.kube
 sudo k0s kubeconfig admin > .kube/config
+```
 
 ## Dev Cluster i.e. VM1
 
 ## Install required software on Dev cluster
 
+```
 sudo apt install apache2-utils -y
 
 helm repo add jetstack https://charts.jetstack.io --force-update
@@ -52,7 +56,6 @@ kubectl apply -f https://github.com/infinitydon/nephio-proxmox-packages/raw/refs
 
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
 
-```
 cat <<EOF | kubectl apply -f-
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -72,7 +75,6 @@ spec:
   interfaces:
   - eth0  
 EOF
-```
 
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.1/cert-manager.yaml
 
@@ -111,8 +113,11 @@ helm upgrade --install kargo \
   --set api.adminAccount.tokenSigningKey=$signing_key \
   --set api.service.type=LoadBalancer \
   --wait
+```
 
 ## OpenFaaS
+
+```
 curl -SLsf https://get.arkade.dev/ | sudo sh
 
 arkade install openfaas --load-balancer
@@ -132,8 +137,11 @@ export OPENFAAS_URL=http://10.0.10.1:8080/ (this will be the LB IP, modify if ne
 PASSWORD=$(kubectl get secret -n openfaas basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode; echo)
 
 echo -n $PASSWORD | faas-cli login --username admin --password-stdin
+```
 
 ## Install openfaas
+
+```
 Update the GW value to the LB IP that was assigned by metalLB in `gateway: http://10.0.1.1:8080/` in both gnb-scaling.yml and ue-scaling.yml
 
 cd ~/openfaas-gnb;faas-cli deploy -f gnb-scaling.yml
@@ -143,13 +151,15 @@ cd ~/openfaas-ue;faas-cli deploy -f ue-scaling.yml
 N.B - Same manifests will be used for the openfaas in the prod cluster i.e. VM2 but only the gateway IP needs to be changed.
 
 N.B - MetalLB is optional, NodePort service can also be used or public cloud LB as applicable to your platform
+```
 
 ## Second Cluster
+
+```
 kubectl apply -f https://github.com/infinitydon/nephio-proxmox-packages/raw/refs/heads/r3/multus-package/multus-thickplugin.yaml
 
 kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
 
-```
 cat <<EOF | kubectl apply -f-
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
@@ -172,6 +182,8 @@ EOF
 ```
 
 ## Install openfaas
+
+```
 curl -SLsf https://get.arkade.dev/ | sudo sh
 
 arkade install openfaas --load-balancer
@@ -191,14 +203,19 @@ export OPENFAAS_URL=http://10.0.10.11:8080/ (this will be the LB IP, modify if n
 PASSWORD=$(kubectl get secret -n openfaas basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode; echo)
 
 echo -n $PASSWORD | faas-cli login --username admin --password-stdin
+```
 
 ## Update the gateway to the openfaas gateway for the second cluster before applying
 
+```
 cd ~/openfaas-gnb;faas-cli deploy -f gnb-scaling.yml
 
 cd ~/openfaas-ue;faas-cli deploy -f ue-scaling.yml
+```
 
 ## Register second cluster on first cluster, command must be run in first cluster
+
+```
 argocd login --insecure 10.0.10.2 --username admin --password BD6WfMM2AUQdRkch --skip-test-tls --grpc-web
 
 N.B - 10.0.10.2 is the ArgoCD LB IP
@@ -206,9 +223,10 @@ N.B - 10.0.10.2 is the ArgoCD LB IP
 N.B - You will need to copy the kubeconfig of prod cluster to the dev cluster VM
 
 argocd cluster add --kubeconfig kargo-cicd-2-kubeconfig --kube-context string Default --name kargo-cicd-2
-
+```
 
 ## Deploy the Kargo/ArgoCD manifests in the Dev cluster
+
 ```
 kubectl apply -f kargo-manifest.yaml
 
